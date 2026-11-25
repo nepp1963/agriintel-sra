@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  .sra-hide-pointers .leaflet-marker-icon,
+  .sra-hide-pointers .leaflet-marker-shadow {
+    display: none !important;
+  }
+}

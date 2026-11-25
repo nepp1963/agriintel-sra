@@ -109,6 +109,7 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
   const [recenterKey, setRecenterKey] = useState<number>(0);
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(true);
   const [mapLayer, setMapLayer] = useState<'satellite' | 'street'>('satellite');
+  const [hidePointers, setHidePointers] = useState<boolean>(false);
 
   // Parcel & RA 10173 Consent State
   const [millDistrictCode, setMillDistrictCode] = useState<string>(defaultDistrictCode);
@@ -558,6 +559,18 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
 
             <button
               type="button"
+              onClick={() => setHidePointers((prev) => !prev)}
+              className={`px-2.5 py-1.5 rounded-lg border font-medium cursor-pointer ${
+                hidePointers
+                  ? "bg-amber-900/70 border-amber-600 text-amber-200"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
+              }`}
+            >
+              {hidePointers ? "Show Pointers" : "Hide Pointers"}
+            </button>
+
+            <button
+              type="button"
               onClick={handleCaptureGpsCorner}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 text-white font-medium cursor-pointer"
             >
@@ -589,8 +602,9 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
           </div>
         </div>
 
-        <div className="w-full aspect-[2/1] rounded-lg overflow-hidden border border-slate-800">
+        <div className={`w-full h-[380px] sm:h-auto sm:aspect-[2/1] rounded-lg overflow-hidden border border-slate-800 ${hidePointers ? "sra-hide-pointers" : ""}`}>
           <MapContainer
+            key={hidePointers ? "sra-map-no-pins" : "sra-map-pins"}
             center={[baseLat, baseLng]}
             zoom={16}
             style={{ height: '100%', width: '100%' }}
@@ -617,7 +631,7 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
             {coords.length > 0 && (
               <FarmBoundaryEditor
                 coords={coords}
-                isEditing={true}
+                isEditing={!hidePointers}
                 onVertexDragEnd={handleVertexDragEnd}
               />
             )}

@@ -51,6 +51,7 @@ const calculateArea = (verts: [number, number][]) => {
 
 export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
+  const [hidePointers, setHidePointers] = useState<boolean>(false);
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
@@ -154,7 +155,14 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
             Map boundary via Mobile GPS or Drone Survey, auto-derive hydraulic layout & crop plans
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setHidePointers((prev) => !prev)}
+                className={`px-3 py-1.5 rounded text-xs font-semibold border transition cursor-pointer ${hidePointers ? "bg-amber-900/70 border-amber-600 text-amber-200" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"}`}
+              >
+                {hidePointers ? "Show Pointers" : "Hide Pointers"}
+              </button>
           <button 
             onClick={handleLoadPlan}
             className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-xs font-semibold rounded text-slate-300 hover:bg-slate-700 cursor-pointer"
@@ -317,7 +325,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
             </div>
           </div>
 
-          <div className="h-[400px] w-full rounded-lg overflow-hidden border border-slate-800 relative">
+          <div className={`h-[400px] w-full rounded-lg overflow-hidden border border-slate-800 relative ${hidePointers ? "sra-hide-pointers" : ""}`}>
             <MapContainer 
               center={[13.93410, 121.36320]} 
               zoom={14} 
