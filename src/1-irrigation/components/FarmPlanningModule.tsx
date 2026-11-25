@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -52,10 +52,19 @@ const calculateArea = (verts: [number, number][]) => {
 function FitBoundsOnLoad({ points, trigger }: { points: [number, number][]; trigger: number }) {
   const map = useMap();
   useEffect(() => {
-    if (trigger > 0 && points.length > 0) {
-      const bounds = L.latLngBounds(points.map(([lat, lng]) => [lat, lng] as [number, number]));
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [32, 32], maxZoom: 17 });
+    if (trigger > 0 && Array.isArray(points) && points.length > 0) {
+      const valid = points.filter(
+        (pt): pt is [number, number] =>
+          Array.isArray(pt) &&
+          pt.length >= 2 &&
+          Number.isFinite(Number(pt[0])) &&
+          Number.isFinite(Number(pt[1]))
+      );
+      if (valid.length > 0) {
+        const bounds = L.latLngBounds(valid.map(([lat, lng]) => [Number(lat), Number(lng)]));
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [32, 32], maxZoom: 17 });
+        }
       }
     }
   }, [trigger, points, map]);
