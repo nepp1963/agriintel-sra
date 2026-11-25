@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CloudLightning, Compass } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { IrrigationDashboard } from './1-irrigation/components/IrrigationDashboard';
 import BagyoTrackPH from './components/BagyoTrackPH';
 
@@ -51,6 +52,7 @@ export function App() {
           <IrrigationDashboard />
         </main>
       )}
+      <Analytics />
     </div>
   );
 }
