@@ -49,9 +49,23 @@ const calculateArea = (verts: [number, number][]) => {
   } catch { return 0; }
 };
 
+function FitBoundsOnLoad({ points, trigger }: { points: [number, number][]; trigger: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0 && points.length > 0) {
+      const bounds = L.latLngBounds(points.map(([lat, lng]) => [lat, lng] as [number, number]));
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [32, 32], maxZoom: 17 });
+      }
+    }
+  }, [trigger, points, map]);
+  return null;
+}
+
 export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
   const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
   const [hidePointers, setHidePointers] = useState<boolean>(false);
+  const [boundsTrigger, setBoundsTrigger] = useState<number>(0);
   const [targetCrop, setTargetCrop] = useState('High-Value Vegetables (Onion/Garlic)');
   const [soilTexture, setSoilTexture] = useState('Sandy Loam / Light Texture');
   const [terrainSlope, setTerrainSlope] = useState(2);
@@ -127,7 +141,10 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
           if (data.targetCrop) setTargetCrop(data.targetCrop);
           if (data.soilTexture) setSoilTexture(data.soilTexture);
           if (data.terrainSlope !== undefined) setTerrainSlope(data.terrainSlope);
-          if (data.vertices) setVertices(data.vertices);
+          if (data.vertices) {
+            setVertices(data.vertices);
+            setBoundsTrigger((n) => n + 1);
+          }
           alert('Farm plan loaded successfully!');
         } catch (err) {
           alert('Invalid JSON file format.');
@@ -338,6 +355,7 @@ export function FarmPlanningModule({ theme = 'dark' }: { theme?: string }) {
                 maxZoom={19}
               />
               <MapClickHandler onMapClick={handleMapClick} />
+              <FitBoundsOnLoad points={vertices} trigger={boundsTrigger} />
               
               {vertices.length > 0 && (
                 <Polygon positions={vertices} pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.3 }} />
