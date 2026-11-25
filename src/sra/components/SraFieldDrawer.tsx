@@ -604,7 +604,6 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
 
         <div className={`w-full h-[380px] sm:h-auto sm:aspect-[2/1] rounded-lg overflow-hidden border border-slate-800 ${hidePointers ? "sra-hide-pointers" : ""}`}>
           <MapContainer
-            key={hidePointers ? "sra-map-no-pins" : "sra-map-pins"}
             center={[baseLat, baseLng]}
             zoom={16}
             style={{ height: '100%', width: '100%' }}
