@@ -1,4 +1,5 @@
 import { SraParcelRecord, SraFieldObservation } from '../types/sra';
+import { getSupabaseSyncConfig, pushBatchToSupabaseRpc } from '../cloud/sraSupabaseSync';
 
 const DB_NAME = 'agriintelph_sra_edge_db';
 const DB_VERSION = 1;
@@ -126,4 +127,60 @@ export async function flushEdgeSyncQueue(
     syncedParcels: pendingParcels.length,
     syncedObservations: pendingObs.length,
   };
+}
+
+export async function syncPendingToCloud(
+  fallbackSyncEndpointUrl?: string,
+  authToken?: string
+): Promise<{ syncedParcels: number; syncedObservations: number; target: "supabase" | "endpoint" | "none" }> {
+  if (!navigator.onLine) {
+    return { syncedParcels: 0, syncedObservations: 0, target: "none" };
+  }
+
+  const db = await openEdgeDb();
+  const readPending = <T extends { syncStatus: string }>(storeName: string): Promise<T[]> =>
+    new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, "readonly");
+      const req = tx.objectStore(storeName).getAll();
+      req.onsuccess = () => resolve((req.result || []).filter((item: T) => item.syncStatus === "pending"));
+      req.onerror = () => reject(req.error);
+    });
+
+  const [pendingParcels, pendingObs] = await Promise.all([
+    readPending<SraParcelRecord>(PARCEL_STORE),
+    readPending<SraFieldObservation>(OBS_STORE),
+  ]);
+
+  if (pendingParcels.length === 0 && pendingObs.length === 0) {
+    return { syncedParcels: 0, syncedObservations: 0, target: "none" };
+  }
+
+  const supaConfig = getSupabaseSyncConfig();
+  if (supaConfig) {
+    const result = await pushBatchToSupabaseRpc(
+      { ...supaConfig, accessToken: authToken },
+      pendingParcels,
+      pendingObs
+    );
+    const markSynced = <T extends { syncStatus: string }>(storeName: string, items: T[]) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(storeName, "readwrite");
+        const store = tx.objectStore(storeName);
+        items.forEach((item) => store.put({ ...item, syncStatus: "synced" }));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    await Promise.all([
+      markSynced(PARCEL_STORE, pendingParcels),
+      markSynced(OBS_STORE, pendingObs),
+    ]);
+    return { ...result, target: "supabase" };
+  }
+
+  if (fallbackSyncEndpointUrl) {
+    const res = await flushEdgeSyncQueue(fallbackSyncEndpointUrl, authToken);
+    return { ...res, target: "endpoint" };
+  }
+
+  return { syncedParcels: 0, syncedObservations: 0, target: "none" };
 }

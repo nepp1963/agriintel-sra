@@ -27,7 +27,7 @@ import {
   saveOfflineParcel,
   saveOfflineObservation,
   getPendingSyncCounts,
-  flushEdgeSyncQueue,
+  syncPendingToCloud,
 } from '../offline/sraSyncQueue';
 import { calculateHectares, findOverlappingParcels } from '../utils/sraGeometry';
 
@@ -166,8 +166,15 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
     refreshCounts();
     const handleOnline = () => {
       setIsOnline(true);
-      flushEdgeSyncQueue(syncEndpointUrl)
-        .then(() => refreshCounts())
+      syncPendingToCloud(syncEndpointUrl)
+        .then((res) => {
+          refreshCounts();
+          if (res.syncedParcels > 0 || res.syncedObservations > 0) {
+            setStatusMessage(
+              `Auto-synced ${res.syncedParcels} parcel(s) and ${res.syncedObservations} observation(s) via ${res.target === "supabase" ? "Supabase PostGIS" : "edge endpoint"}.`
+            );
+          }
+        })
         .catch(() => {});
     };
     const handleOffline = () => setIsOnline(false);
@@ -429,14 +436,14 @@ export const SraFieldDrawer: React.FC<SraFieldDrawerProps> = ({
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
-      const result = await flushEdgeSyncQueue(syncEndpointUrl);
+      const result = await syncPendingToCloud(syncEndpointUrl);
       await refreshCounts();
       setStatusMessage(
-        `Sync complete: ${result.syncedParcels} parcel(s), ${result.syncedObservations} observation(s) pushed to RA 10173 vault.`
+        `Sync complete (${result.target === "supabase" ? "Supabase PostGIS" : result.target}): ${result.syncedParcels} parcel(s), ${result.syncedObservations} observation(s) synced.`
       );
-    } catch {
+    } catch (err) {
       setStatusMessage(
-        'Offline or sync endpoint unreachable — items remain safely queued in IndexedDB.'
+        err instanceof Error && err.message ? err.message : 'Offline or sync endpoint unreachable — items remain safely queued in IndexedDB.'
       );
     } finally {
       setIsSyncing(false);
